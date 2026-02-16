@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ZekretLabs CRM - Angel Investor Pipeline Management">
+    <title>ZekretLabs CRM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💼</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .space-x-2 > * + * { margin-left: 0.5rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .gap-4 { gap: 1rem; }
+        .grid { display: grid; }
+        .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
+        
+        .bg-white { background: white; }
+        .bg-blue-600 { background: #2563eb; }
+        .bg-green-600 { background: #16a34a; }
+        .text-white { color: white; }
+        .text-gray-600 { color: #4b5563; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        
+        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card-header { font-size: 18px; font-weight: 600; margin-bottom: 15px; }
+        
+        input, textarea, select { 
+            width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit;
+        }
+        input:focus, textarea:focus, select:focus { outline: 2px solid #2563eb; border-color: transparent; }
+        
+        .nav { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 15px 20px; margin-bottom: 20px; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #1f2937; }
+        .nav-tabs { display: flex; gap: 5px; margin-left: 30px; }
+        .nav-tab { 
+            padding: 8px 16px; border: none; background: none; cursor: pointer; 
+            border-bottom: 2px solid transparent; font-weight: 500; color: #6b7280;
+        }
+        .nav-tab.active { border-bottom-color: #2563eb; color: #2563eb; }
+        
+        .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
+        .pipeline-column { background: #f9fafb; border-radius: 8px; padding: 15px; min-height: 600px; }
+        .pipeline-header { font-weight: 600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .pipeline-count { background: #6b7280; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        
+        .lead-card { 
+            background: white; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;
+        }
+        .lead-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .lead-name { font-weight: 600; margin-bottom: 5px; }
+        .lead-info { font-size: 12px; color: #6b7280; }
+        
+        .modal { 
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal.active { display: flex; }
+        .modal-content { 
+            background: white; border-radius: 12px; padding: 30px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header { font-size: 24px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { font-size: 28px; cursor: pointer; color: #6b7280; background: none; border: none; }
+        
+        .auth-screen { 
+            min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .auth-card { background: white; border-radius: 16px; padding: 40px; max-width: 450px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .auth-title { font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 10px; }
+        .auth-subtitle { text-align: center; color: #6b7280; margin-bottom: 30px; }
+        
+        .notification { 
+            position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; 
+            color: white; z-index: 2000; animation: slideIn 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .notification.success { background: #16a34a; }
+        .notification.error { background: #dc2626; }
+        .notification.info { background: #2563eb; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f9fafb; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { font-weight: 600; font-size: 12px; text-transform: uppercase; color: #6b7280; }
+        tbody tr:hover { background: #f9fafb; }
+        
+        .hidden { display: none !important; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mt-4 { margin-top: 1rem; }
+        .w-full { width: 100%; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 14px; }
+        
+        .stage-new { background: #f3f4f6; }
+        .stage-contacted { background: #dbeafe; }
+        .stage-engaged { background: #fef3c7; }
+        .stage-interested { background: #f3e8ff; }
+        .stage-closed { background: #dcfce7; }
+        
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-new { background: #f3f4f6; color: #1f2937; }
+        .badge-contacted { background: #dbeafe; color: #1e40af; }
+        .badge-engaged { background: #fef3c7; color: #854d0e; }
+        .badge-interested { background: #f3e8ff; color: #6b21a8; }
+        .badge-closed { background: #dcfce7; color: #166534; }
+        
+        .link { color: #2563eb; text-decoration: none; font-weight: 600; }
+        .link:hover { text-decoration: underline; }
+        
+        @media (max-width: 1200px) {
+            .pipeline { grid-template-columns: repeat(3, 1fr); }
+        }
+        
+        @media (max-width: 768px) {
+            .pipeline { grid-template-columns: 1fr; }
+            .nav-tabs { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="authScreen" class="auth-screen">
+            <div class="auth-card">
+                <h1 class="auth-title">ZekretLabs CRM</h1>
+                <p class="auth-subtitle">Angel Investor Management</p>
+                
+                <div id="loginForm">
+                    <div class="space-y-4">
+                        <input type="email" id="loginEmail" placeholder="Email address" required>
+                        <input type="password" id="loginPassword" placeholder="Password" required>
+                        <button class="btn btn-primary w-full" onclick="handleLogin()">Sign In</button>
+                        <p class="text-center text-sm text-gray-600">
+                            Don't have an account? <a href="#" onclick="showSignup()" class="link">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+                
+                <div id="signupForm" class="hidden">
+                    <div class="space-y-4">
+                        <input type="text" id="signupName" placeholder="Full Name" required>
+                        <input type="email" id="signupEmail" placeholder="Email address" required>
+                        <input type="password" id="signupPassword" placeholder="Password (min 8 characters)" required>
+                        <input type="password" id="signupConfirm" placeholder="Confirm password" required>
+                        <button class="btn btn-primary w-full" onclick="handleSignup()">Create Account</button>
+                        <p class="text-center text-sm text-gray-600">
+                            Already have an account? <a href="#" onclick="showLogin()" class="link">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="crmApp" class="hidden">
+            <div class="nav flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="nav-title">ZekretLabs CRM</div>
+                    <div class="nav-tabs">
+                        <button class="nav-tab active" data-view="pipeline" onclick="switchView('pipeline')">Pipeline</button>
+                        <button class="nav-tab" data-view="leads" onclick="switchView('leads')">All Leads</button>
+                        <button class="nav-tab" data-view="activities" onclick="switchView('activities')">Activities</button>
+                        <button class="nav-tab" data-view="team" onclick="switchView('team')">Team</button>
+                        <button class="nav-tab" data-view="settings" onclick="switchView('settings')">Settings</button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="btn btn-success" onclick="openImportModal()">📥 Import</button>
+                    <button class="btn btn-primary" onclick="openAddLeadModal()">+ Add Lead</button>
+                    <div style="width: 40px; height: 40px; background: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; cursor: pointer;" onclick="showUserMenu()" id="userAvatar"></div>
+                </div>
+            </div>
+            
+            <div class="container">
+                <div id="pipelineView" class="view-content">
+                    <div class="pipeline" id="pipelineBoard"></div>
+                </div>
+                
+                <div id="leadsView" class="view-content hidden">
+                    <div class="card">
+                        <div class="card-header">All Leads</div>
+                        <input type="text" placeholder="Search leads..." oninput="filterLeads(this.value)" style="margin-bottom: 15px;">
+                        <div style="overflow-x: auto;">
+                            <table id="leadsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Organization</th>
+                                        <th>Country</th>
+                                        <th>City</th>
+                                        <th>Stage</th>
+                                        <th>Owner</th>
+                                        <th>Last Contact</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leadsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="activitiesView" class="view-content hidden">
+                    <div class="card">
+                        <div class="card-header">Recent Activities</div>
+                        <div id="activitiesList"></div>
+                    </div>
+                </div>
+                
+                <div id="teamView" class="view-content hidden">
+                    <div class="card">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="card-header" style="margin: 0;">Team Members</div>
+                            <button class="btn btn-primary" onclick="openInviteModal()">Invite Member</button>
+                        </div>
+                        <div id="teamList"></div>
+                    </div>
+                </div>
+                
+                <div id="settingsView" class="view-content hidden">
+                    <div class="card mb-4">
+                        <div class="card-header">LinkedIn Integration</div>
+                        <p class="text-sm text-gray-600 mb-4">Connect LinkedIn to send messages directly from the CRM.</p>
+                        <div id="linkedinStatus"></div>
+                        <button class="btn btn-primary" onclick="connectLinkedIn()">Connect LinkedIn</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">Gmail Integration</div>
+                        <p class="text-sm text-gray-600 mb-4">Connect Gmail to send and track emails automatically.</p>
+                        <div id="gmailStatus"></div>
+                        <button class="btn btn-primary" onclick="connectGmail()">Connect Gmail</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="leadModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span id="leadModalTitle">Lead Details</span>
+                    <button class="modal-close" onclick="closeLeadModal()">&times;</button>
+                </div>
+                <div id="leadModalContent"></div>
+            </div>
+        </div>
+        
+        <div id="addLeadModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>Add New Lead</span>
+                    <button class="modal-close" onclick="closeAddLeadModal()">&times;</button>
+                </div>
+                <div class="space-y-4">
+                    <input type="text" id="newLeadName" placeholder="Organization Name *" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <input type="text" id="newLeadCountry" placeholder="Country">
+                        <input type="text" id="newLeadCity" placeholder="City">
+                    </div>
+                    <input type="url" id="newLeadWebsite" placeholder="Website">
+                    <input type="url" id="newLeadLinkedIn" placeholder="LinkedIn URL">
+                    <input type="email" id="newLeadEmail" placeholder="Email">
+                    <textarea id="newLeadNotes" placeholder="Notes..." rows="3"></textarea>
+                    <div class="flex" style="gap: 10px; justify-content: flex-end;">
+                        <button class="btn" onclick="closeAddLeadModal()" style="background: #e5e7eb;">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveNewLead()">Add Lead</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="importModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>Import Leads</span>
+                    <button class="modal-close" onclick="closeImportModal()">&times;</button>
+                </div>
+                <div>
+                    <div style="border: 2px dashed #d1d5db; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer;" onclick="document.getElementById('importFile').click()">
+                        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImport()" style="display: none;">
+                        <p style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">📁 Click to select file</p>
+                        <p style="color: #6b7280; font-size: 14px;">Excel (.xlsx, .xls) or CSV</p>
+                    </div>
+                    <div id="importPreview" class="hidden mt-4"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="inviteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>Invite Team Member</span>
+                    <button class="modal-close" onclick="closeInviteModal()">&times;</button>
+                </div>
+                <div class="space-y-4">
+                    <input type="email" id="inviteEmail" placeholder="Email address" required>
+                    <input type="text" id="inviteName" placeholder="Full name" required>
+                    <select id="inviteRole">
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <div class="flex" style="gap: 10px; justify-content: flex-end;">
+                        <button class="btn" onclick="closeInviteModal()" style="background: #e5e7eb;">Cancel</button>
+                        <button class="btn btn-primary" onclick="sendInvite()">Send Invite</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CRM = {
+            currentUser: null,
+            users: [],
+            leads: [],
+            activities: [],
+            team: [],
+            config: { linkedinConnected: false, gmailConnected: false }
+        };
+        
+        async function loadData() {
+            try {
+                const keys = ['users', 'leads', 'activities', 'team', 'config'];
+                const results = await Promise.all(
+                    keys.map(k => window.storage.get(`crm_${k}`, true).catch(() => null))
+                );
+                keys.forEach((key, i) => {
+                    if (results[i]) CRM[key] = JSON.parse(results[i].value);
+                });
+            } catch (e) {
+                console.log('Fresh start');
+            }
+        }
+        
+        async function saveData(key) {
+            try {
+                await window.storage.set(`crm_${key}`, JSON.stringify(CRM[key]), true);
+            } catch (e) {
+                console.error('Save failed:', e);
+                notify('Failed to save', 'error');
+            }
+        }
+        
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            if (!email || !password) return notify('Enter email and password', 'error');
+            const user = CRM.users.find(u => u.email === email && u.password === password);
+            if (!user) return notify('Invalid credentials', 'error');
+            loginUser(user);
+        }
+        
+        async function handleSignup() {
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('signupConfirm').value;
+            
+            if (!name || !email || !password || !confirm) return notify('Fill all fields', 'error');
+            if (password.length < 8) return notify('Password must be 8+ characters', 'error');
+            if (password !== confirm) return notify('Passwords do not match', 'error');
+            if (CRM.users.find(u => u.email === email)) return notify('Email already registered', 'error');
+            
+            const user = {
+                id: Date.now().toString(),
+                name, email, password,
+                role: CRM.users.length === 0 ? 'admin' : 'member',
+                createdAt: new Date().toISOString()
+            };
+            
+            CRM.users.push(user);
+            await saveData('users');
+            CRM.team.push({ ...user, status: 'active' });
+            await saveData('team');
+            loginUser(user);
+        }
+        
+        function loginUser(user) {
+            CRM.currentUser = user;
+            localStorage.setItem('crm_user', JSON.stringify(user));
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('crmApp').classList.remove('hidden');
+            initCRM();
+            notify(`Welcome, ${user.name}!`, 'success');
+        }
+        
+        function logout() {
+            if (confirm('Sign out?')) {
+                CRM.currentUser = null;
+                localStorage.removeItem('crm_user');
+                location.reload();
+            }
+        }
+        
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+        }
+        
+        function showSignup() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+        }
+        
+        async function initCRM() {
+            document.getElementById('userAvatar').textContent = CRM.currentUser.name.substring(0, 2).toUpperCase();
+            renderPipeline();
+            renderLeadsTable();
+            renderActivities();
+            renderTeam();
+        }
+        
+        function renderPipeline() {
+            const stages = ['new', 'contacted', 'engaged', 'interested', 'closed'];
+            const stageNames = ['New', 'Contacted', 'Engaged', 'Interested', 'Closed'];
+            document.getElementById('pipelineBoard').innerHTML = stages.map((stage, idx) => {
+                const leads = CRM.leads.filter(l => l.stage === stage);
+                return `
+                    <div class="pipeline-column stage-${stage}">
+                        <div class="pipeline-header">
+                            <span>${stageNames[idx]}</span>
+                            <span class="pipeline-count">${leads.length}</span>
+                        </div>
+                        ${leads.map(lead => `
+                            <div class="lead-card" onclick="openLeadDetail('${lead.id}')">
+                                <div class="lead-name">${esc(lead.name)}</div>
+                                <div class="lead-info">${esc(lead.country || 'No location')}</div>
+                                <div class="lead-info" style="margin-top: 5px;">${lead.owner || 'Unassigned'} • ${fmt(lead.lastContact || lead.createdAt)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderLeadsTable() {
+            document.getElementById('leadsTableBody').innerHTML = CRM.leads.map(lead => `
+                <tr onclick="openLeadDetail('${lead.id}')" style="cursor: pointer;">
+                    <td>${esc(lead.name)}</td>
+                    <td>${esc(lead.country || '-')}</td>
+                    <td>${esc(lead.city || '-')}</td>
+                    <td><span class="badge badge-${lead.stage}">${lead.stage}</span></td>
+                    <td>${esc(lead.owner || 'Unassigned')}</td>
+                    <td>${fmt(lead.lastContact || lead.createdAt)}</td>
+                    <td><button class="btn-primary" style="padding: 5px 10px; font-size: 12px;" onclick="event.stopPropagation();">View</button></td>
+                </tr>
+            `).join('');
+        }
+        
+        function filterLeads(query) {
+            const rows = document.querySelectorAll('#leadsTableBody tr');
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(query.toLowerCase()) ? '' : 'none';
+            });
+        }
+        
+        function openLeadDetail(leadId) {
+            const lead = CRM.leads.find(l => l.id === leadId);
+            if (!lead) return;
+            
+            document.getElementById('leadModalTitle').textContent = lead.name;
+            document.getElementById('leadModalContent').innerHTML = `
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                    <div>
+                        <h3 style="font-weight: 600; margin-bottom: 15px;">Information</h3>
+                        <div style="display: grid; gap: 10px;">
+                            <div><strong>Country:</strong> ${esc(lead.country || '-')}</div>
+                            <div><strong>City:</strong> ${esc(lead.city || '-')}</div>
+                            <div><strong>Website:</strong> ${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : '-'}</div>
+                            <div><strong>LinkedIn:</strong> ${lead.linkedinUrl ? `<a href="${lead.linkedinUrl}" target="_blank">Profile</a>` : '-'}</div>
+                            <div><strong>Email:</strong> ${esc(lead.email || '-')}</div>
+                        </div>
+                        <h3 style="font-weight: 600; margin: 20px 0 15px;">Stage</h3>
+                        <select onchange="updateLeadStage('${leadId}', this.value)" style="width: 200px;">
+                            <option value="new" ${lead.stage === 'new' ? 'selected' : ''}>New</option>
+                            <option value="contacted" ${lead.stage === 'contacted' ? 'selected' : ''}>Contacted</option>
+                            <option value="engaged" ${lead.stage === 'engaged' ? 'selected' : ''}>Engaged</option>
+                            <option value="interested" ${lead.stage === 'interested' ? 'selected' : ''}>Interested</option>
+                            <option value="closed" ${lead.stage === 'closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                        <h3 style="font-weight: 600; margin: 20px 0 15px;">Notes</h3>
+                        <textarea id="noteInput_${leadId}" placeholder="Add a note..." rows="3" style="margin-bottom: 10px;"></textarea>
+                        <button class="btn btn-primary" onclick="addNote('${leadId}')">Add Note</button>
+                        <div id="notes_${leadId}" style="margin-top: 15px;">
+                            ${(lead.notes || []).map(note => `
+                                <div style="background: #f9fafb; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                    <div style="font-size: 14px;">${esc(note.text)}</div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">${note.by} • ${fmt(note.createdAt)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-weight: 600; margin-bottom: 15px;">Activity</h3>
+                        ${CRM.activities.filter(a => a.leadId === leadId).slice(0, 10).map(act => `
+                            <div style="border-left: 2px solid #e5e7eb; padding-left: 10px; margin-bottom: 15px;">
+                                <div style="font-size: 13px; font-weight: 600;">${act.action}</div>
+                                <div style="font-size: 12px; color: #6b7280;">${act.by} • ${fmt(act.createdAt)}</div>
+                            </div>
+                        `).join('') || '<p style="color: #6b7280;">No activity</p>'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('leadModal').classList.add('active');
+        }
+        
+        function closeLeadModal() {
+            document.getElementById('leadModal').classList.remove('active');
+        }
+        
+        async function updateLeadStage(leadId, newStage) {
+            const lead = CRM.leads.find(l => l.id === leadId);
+            if (!lead) return;
+            lead.stage = newStage;
+            lead.lastContact = new Date().toISOString();
+            CRM.activities.unshift({
+                id: Date.now().toString(), leadId,
+                action: `Stage: ${newStage}`,
+                by: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            });
+            await Promise.all([saveData('leads'), saveData('activities')]);
+            renderPipeline();
+            renderLeadsTable();
+            notify('Stage updated', 'success');
+        }
+        
+        async function addNote(leadId) {
+            const text = document.getElementById(`noteInput_${leadId}`).value.trim();
+            if (!text) return;
+            const lead = CRM.leads.find(l => l.id === leadId);
+            if (!lead) return;
+            if (!lead.notes) lead.notes = [];
+            lead.notes.unshift({
+                id: Date.now().toString(),
+                text,
+                by: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            });
+            CRM.activities.unshift({
+                id: Date.now().toString(), leadId,
+                action: 'Added note',
+                by: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            });
+            await Promise.all([saveData('leads'), saveData('activities')]);
+            document.getElementById(`noteInput_${leadId}`).value = '';
+            openLeadDetail(leadId);
+            notify('Note added', 'success');
+        }
+        
+        function openAddLeadModal() {
+            document.getElementById('addLeadModal').classList.add('active');
+        }
+        
+        function closeAddLeadModal() {
+            document.getElementById('addLeadModal').classList.remove('active');
+        }
+        
+        async function saveNewLead() {
+            const name = document.getElementById('newLeadName').value.trim();
+            if (!name) return notify('Name required', 'error');
+            
+            const lead = {
+                id: Date.now().toString(), name,
+                country: document.getElementById('newLeadCountry').value.trim(),
+                city: document.getElementById('newLeadCity').value.trim(),
+                website: document.getElementById('newLeadWebsite').value.trim(),
+                linkedinUrl: document.getElementById('newLeadLinkedIn').value.trim(),
+                email: document.getElementById('newLeadEmail').value.trim(),
+                notes: [],
+                stage: 'new',
+                owner: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            };
+            
+            const noteText = document.getElementById('newLeadNotes').value.trim();
+            if (noteText) {
+                lead.notes.push({
+                    id: Date.now().toString(),
+                    text: noteText,
+                    by: CRM.currentUser.name,
+                    createdAt: new Date().toISOString()
+                });
+            }
+            
+            CRM.leads.unshift(lead);
+            CRM.activities.unshift({
+                id: Date.now().toString(), leadId: lead.id,
+                action: `Created: ${name}`,
+                by: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            });
+            
+            await Promise.all([saveData('leads'), saveData('activities')]);
+            closeAddLeadModal();
+            renderPipeline();
+            renderLeadsTable();
+            notify('Lead added', 'success');
+            
+            ['newLeadName', 'newLeadCountry', 'newLeadCity', 'newLeadWebsite', 'newLeadLinkedIn', 'newLeadEmail', 'newLeadNotes'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+        
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+            document.getElementById('importFile').value = '';
+            document.getElementById('importPreview').classList.add('hidden');
+        }
+        
+        function handleImport() {
+            const file = document.getElementById('importFile').files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                document.getElementById('importPreview').classList.remove('hidden');
+                document.getElementById('importPreview').innerHTML = `
+                    <div class="card">
+                        <p style="margin-bottom: 15px;"><strong>${jsonData.length} leads</strong> ready to import</p>
+                        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                            ${jsonData.slice(0, 10).map(row => `
+                                <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 5px;">
+                                    <strong>${row['Organisation Name'] || row.name || 'Unnamed'}</strong> - ${row.Country || row.country || 'Unknown'}
+                                </div>
+                            `).join('')}
+                            ${jsonData.length > 10 ? `<p style="text-align: center; color: #6b7280; margin-top: 10px;">...and ${jsonData.length - 10} more</p>` : ''}
+                        </div>
+                        <button class="btn btn-primary w-full" onclick='confirmImport(${JSON.stringify(jsonData).replace(/'/g, "\\'")})'>Import All Leads</button>
+                    </div>
+                `;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        async function confirmImport(data) {
+            const imported = data.map(row => ({
+                id: Date.now().toString() + Math.random(),
+                name: row['Organisation Name'] || row.name || 'Unnamed',
+                country: row.Country || row.country || '',
+                city: row.City || row.city || '',
+                website: row.Domain || row.website || '',
+                linkedinUrl: row['LinkedIn URL'] || row.linkedinUrl || '',
+                email: row.Email || row.email || '',
+                stage: 'new',
+                owner: CRM.currentUser.name,
+                createdAt: new Date().toISOString(),
+                notes: []
+            }));
+            
+            CRM.leads.push(...imported);
+            CRM.activities.unshift({
+                id: Date.now().toString(),
+                action: `Imported ${imported.length} leads`,
+                by: CRM.currentUser.name,
+                createdAt: new Date().toISOString()
+            });
+            
+            await Promise.all([saveData('leads'), saveData('activities')]);
+            closeImportModal();
+            renderPipeline();
+            renderLeadsTable();
+            notify(`${imported.length} leads imported!`, 'success');
+        }
+        
+        function renderTeam() {
+            document.getElementById('teamList').innerHTML = CRM.team.map(m => `
+                <div style="display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #e5e7eb;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px;">
+                            ${m.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">${esc(m.name)}</div>
+                            <div style="color: #6b7280; font-size: 14px;">${esc(m.email)}</div>
+                        </div>
+                    </div>
+                    <span class="badge" style="background: ${m.role === 'admin' ? '#dbeafe' : '#f3f4f6'}; color: ${m.role === 'admin' ? '#1e40af' : '#1f2937'};">${m.role}</span>
+                </div>
+            `).join('');
+        }
+        
+        function openInviteModal() {
+            document.getElementById('inviteModal').classList.add('active');
+        }
+        
+        function closeInviteModal() {
+            document.getElementById('inviteModal').classList.remove('active');
+        }
+        
+        async function sendInvite() {
+            const email = document.getElementById('inviteEmail').value.trim();
+            const name = document.getElementById('inviteName').value.trim();
+            const role = document.getElementById('inviteRole').value;
+            
+            if (!email || !name) return notify('Fill all fields', 'error');
+            
+            const tempPass = Math.random().toString(36).slice(-8);
+            const user = {
+                id: Date.now().toString(),
+                name, email, password: tempPass, role,
+                createdAt: new Date().toISOString()
+            };
+            
+            CRM.users.push(user);
+            CRM.team.push({ ...user, status: 'invited' });
+            await Promise.all([saveData('users'), saveData('team')]);
+            closeInviteModal();
+            renderTeam();
+            alert(`Invited ${email}\n\nTemporary password: ${tempPass}\n\nShare this with the team member.`);
+            notify('Member invited', 'success');
+        }
+        
+        function renderActivities() {
+            document.getElementById('activitiesList').innerHTML = CRM.activities.slice(0, 50).map(a => `
+                <div style="padding: 15px 0; border-bottom: 1px solid #e5e7eb;">
+                    <div style="font-weight: 600;">${esc(a.action)}</div>
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">${esc(a.by)} • ${fmt(a.createdAt)}</div>
+                </div>
+            `).join('') || '<p style="color: #6b7280;">No activities yet</p>';
+        }
+        
+        function connectLinkedIn() {
+            if (confirm('Enable LinkedIn integration? (Demo mode - requires API setup for production)')) {
+                CRM.config.linkedinConnected = true;
+                saveData('config');
+                document.getElementById('linkedinStatus').innerHTML = '<div style="padding: 10px; background: #dcfce7; border-radius: 6px; margin-bottom: 10px; color: #166534;">✓ LinkedIn Connected</div>';
+                notify('LinkedIn connected', 'success');
+            }
+        }
+        
+        function connectGmail() {
+            if (confirm('Enable Gmail integration? (Demo mode - requires API setup for production)')) {
+                CRM.config.gmailConnected = true;
+                saveData('config');
+                document.getElementById('gmailStatus').innerHTML = '<div style="padding: 10px; background: #dcfce7; border-radius: 6px; margin-bottom: 10px; color: #166534;">✓ Gmail Connected</div>';
+                notify('Gmail connected', 'success');
+            }
+        }
+        
+        function switchView(view) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(view + 'View').classList.remove('hidden');
+            document.querySelector(`[data-view="${view}"]`).classList.add('active');
+            if (view === 'activities') renderActivities();
+            if (view === 'team') renderTeam();
+        }
+        
+        function esc(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function fmt(date) {
+            const d = new Date(date);
+            const diff = Date.now() - d;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (mins < 1) return 'Now';
+            if (mins < 60) return `${mins}m`;
+            if (hours < 24) return `${hours}h`;
+            if (days < 7) return `${days}d`;
+            return d.toLocaleDateString();
+        }
+        
+        function notify(msg, type = 'info') {
+            const n = document.createElement('div');
+            n.className = `notification ${type}`;
+            n.textContent = msg;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+        
+        function showUserMenu() {
+            logout();
+        }
+        
+        window.addEventListener('load', async () => {
+            await loadData();
+            const stored = localStorage.getItem('crm_user');
+            if (stored) {
+                CRM.currentUser = JSON.parse(stored);
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('crmApp').classList.remove('hidden');
+                initCRM();
+            }
+        });
+    </script>
+</body>
+</html>
