@@ -1,0 +1,9 @@
+{
+  "name": "zekretlabs-crm",
+  "version": "1.0.0",
+  "description": "Angel Investor CRM",
+  "scripts": {
+    "start": "serve .",
+    "build": "echo 'No build needed'"
+  }
+}
